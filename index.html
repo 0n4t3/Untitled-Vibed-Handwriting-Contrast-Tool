@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Nothing is ever fetched from the network: no fonts, CDNs, or analytics. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Handwriting Contrast</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c3-1 4-6 6-6s1 5 3 5 3-8 5-8 2 4 4 4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h1>Handwriting Contrast</h1>
+    </div>
+    <p class="local-badge" title="All processing happens in this browser tab. Images are never uploaded.">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10V8a6 6 0 1 1 12 0v2m-13 0h14v11H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      100% local — nothing leaves your browser
+    </p>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <label class="dropzone" id="dropzone" tabindex="0">
+          <input type="file" id="fileInput" accept="image/*" multiple hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5M4 16v4h16v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <strong>Add images</strong>
+          <span>Drop, click to choose, or paste (Ctrl/⌘+V)</span>
+        </label>
+        <ul class="thumbs" id="thumbs" aria-label="Loaded images"></ul>
+      </section>
+
+      <section class="panel controls" id="controls">
+        <h2>Adjust</h2>
+
+        <div class="field">
+          <div class="field-head"><label for="sensitivity">Sensitivity</label><output id="sensitivityOut"></output></div>
+          <input type="range" id="sensitivity" min="0" max="100" step="1">
+          <p class="hint">Raise it to catch faint pencil; lower it if paper texture shows up.</p>
+        </div>
+
+        <div class="field">
+          <div class="field-head"><label for="bolden">Thicken strokes</label><output id="boldenOut"></output></div>
+          <input type="range" id="bolden" min="0" max="4" step="1">
+        </div>
+
+        <div class="field">
+          <span class="label">Output</span>
+          <div class="segmented" role="radiogroup" aria-label="Output style">
+            <label><input type="radio" name="mode" value="binary"><span>Pure black &amp; white</span></label>
+            <label><input type="radio" name="mode" value="smooth"><span>Smooth edges</span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="channel">Ink color</label>
+          <select id="channel">
+            <option value="lum">Pencil / black / any (brightness)</option>
+            <option value="keepColor">Colored ink — keep blue/red pen strong</option>
+            <option value="dropColor">Drop light colored marks (e.g. blue ruled lines)</option>
+          </select>
+        </div>
+
+        <details class="advanced">
+          <summary>Advanced</summary>
+          <div class="field">
+            <div class="field-head"><label for="bgSize">Shadow / lighting correction size</label><output id="bgSizeOut"></output></div>
+            <input type="range" id="bgSize" min="1" max="10" step="0.5">
+            <p class="hint">Larger works better for big or bold writing; smaller handles harsh shadows.</p>
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="smoothing">Noise smoothing</label><output id="smoothingOut"></output></div>
+            <input type="range" id="smoothing" min="0" max="3" step="1">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="speck">Remove specks</label><output id="speckOut"></output></div>
+            <input type="range" id="speck" min="0" max="20" step="1">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="seedRatio">Stroke confidence</label><output id="seedRatioOut"></output></div>
+            <input type="range" id="seedRatio" min="1" max="4" step="0.1">
+            <p class="hint">How much darker than the faintest accepted pixel a stroke must be somewhere. Lower keeps more faint strokes (and more smudges).</p>
+          </div>
+          <div class="field">
+            <label class="label" for="procSize">Working resolution</label>
+            <select id="procSize">
+              <option value="2000">2000 px (fast)</option>
+              <option value="3000">3000 px (≈300 dpi page)</option>
+              <option value="4500">4500 px (detailed)</option>
+              <option value="0">Original size</option>
+            </select>
+          </div>
+          <button type="button" class="btn subtle" id="resetBtn">Reset to defaults</button>
+        </details>
+      </section>
+
+      <section class="panel exports">
+        <h2>Save</h2>
+        <div class="btn-row">
+          <button type="button" class="btn primary" id="downloadBtn" disabled>Download PNG</button>
+          <button type="button" class="btn" id="copyBtn" disabled>Copy</button>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn" id="zipBtn" disabled>All as ZIP</button>
+          <button type="button" class="btn" id="pdfBtn" disabled>All as PDF</button>
+        </div>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <div class="toolbar">
+        <div class="segmented small" role="radiogroup" aria-label="View">
+          <label><input type="radio" name="view" value="result" checked><span>Result</span></label>
+          <label><input type="radio" name="view" value="compare"><span>Compare</span></label>
+          <label><input type="radio" name="view" value="original"><span>Original</span></label>
+        </div>
+        <div class="tool-group">
+          <button type="button" class="icon-btn" id="rotLeftBtn" title="Rotate left" aria-label="Rotate left" disabled>
+            <svg viewBox="0 0 24 24"><path d="M4 4v6h6M5 10a8 8 0 1 1 2 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="rotRightBtn" title="Rotate right" aria-label="Rotate right" disabled>
+            <svg viewBox="0 0 24 24"><path d="M20 4v6h-6M19 10a8 8 0 1 0-2 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="divider"></span>
+          <button type="button" class="icon-btn" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out">−</button>
+          <button type="button" class="btn subtle zoom-label" id="zoomFitBtn" title="Fit to window">Fit</button>
+          <button type="button" class="icon-btn" id="zoomInBtn" title="Zoom in" aria-label="Zoom in">+</button>
+        </div>
+      </div>
+
+      <div class="viewer" id="viewer">
+        <div class="empty" id="empty">
+          <svg viewBox="0 0 120 80" aria-hidden="true">
+            <rect x="8" y="6" width="104" height="68" rx="4" fill="none" stroke="currentColor" stroke-width="2" opacity=".35"/>
+            <path d="M22 34c6-2 8-12 12-12s2 10 6 10 6-16 10-16 4 8 8 8M22 54c5-1 7-8 10-8s2 7 5 7 5-9 8-9 3 5 7 5 4-4 7-4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+          </svg>
+          <p>Add a photo or scan of handwriting to get started.</p>
+          <button type="button" class="btn primary" id="emptyAddBtn">Choose images</button>
+          <p class="hint">Hold <kbd>Space</kbd> to peek at the original. <kbd>←</kbd>/<kbd>→</kbd> switch images.</p>
+        </div>
+        <div class="stage" id="stage" hidden>
+          <canvas id="beforeCanvas"></canvas>
+          <canvas id="afterCanvas"></canvas>
+          <div class="split-line" id="splitLine" hidden><span></span></div>
+        </div>
+      </div>
+      <div class="busy" id="busy" hidden><span class="spinner"></span><span id="busyText">Processing…</span></div>
+      <footer class="statusbar" id="status">Ready.</footer>
+    </section>
+  </main>
+
+  <script src="js/processing.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
